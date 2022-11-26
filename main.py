@@ -1,5 +1,5 @@
-def main(distance, r_distance):
+def main():
     ...
 
 if __name__ == '__main__':
-   main()
+    main()
