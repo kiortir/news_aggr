@@ -5,7 +5,6 @@ except ModuleNotFoundError:
 
 import json
 import datetime
-from pprint import pprint
 # from dataclasses import asdict
 
 import demjson
@@ -52,7 +51,6 @@ class HabrModule(BaseModule):
 
     base_url = 'https://habr.com/ru/flows/develop/'
 
-
     def get_next_url(self, previous_page: int | None = None) -> tuple[str, int]:
         if previous_page is None:
             return self.base_url, 2
@@ -74,9 +72,9 @@ class HabrModule(BaseModule):
         articles.sort(key=lambda x: x.publish_datetime)
         return articles
 
-    #FIXME: Учесть часовые пояса, разобраться с timedelta
+    # FIXME: Учесть часовые пояса, разобраться с timedelta
     def fetch_guard(self, parsed_article_preview_list):
-    
+
         earliest_pusblished_article: ArticlePreview = parsed_article_preview_list[0]
         timedelta: datetime.timedelta = datetime.datetime.now() - \
             earliest_pusblished_article.publish_datetime
@@ -93,7 +91,7 @@ class HabrModule(BaseModule):
 
         author = parsed_content['author']['fullname']
         title = parsed_content['titleHtml']
-        #FIXME: Переделать проверку на наличие фото
+        # FIXME: Переделать проверку на наличие фото
         try:
             title_image = parsed_content['leadData']['image']['url']
         except TypeError:
@@ -107,7 +105,8 @@ class HabrModule(BaseModule):
 
         # FIXME: Переосмыслить с учетом наличия объекта URL
 
-        links = [url['href'] for url in cleaning_soup.find_all('a')]
+        links = [href for url in cleaning_soup.find_all(
+            'a') if (href := getattr(url, 'href', None)) != None]
 
         article = Article(
             publish_datetime=_parse_datetime(time_published),

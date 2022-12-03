@@ -113,9 +113,7 @@ class BaseModule(ABC):
         return [self._get_article(article) for article in self.get_article_previews()]
 
 
-url = Url(
-    'https://habr.com/ru/post/703218/',
-    'Habr'
-)
-
-print(asdict(url))
+# url = Url(
+#     'https://habr.com/ru/post/703218/',
+#     'Habr'
+# )
