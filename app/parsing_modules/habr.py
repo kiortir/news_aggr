@@ -129,5 +129,5 @@ if __name__ == '__main__':
 
     for article in dict_articles:
         article['publish_datetime'] = article['publish_datetime'].timestamp()
-    with open('habr_res.json', 'w') as f:
+    with open('habr_res.json', 'w', encoding='UTF-8') as f:
         json.dump(dict_articles, f, ensure_ascii=False)
