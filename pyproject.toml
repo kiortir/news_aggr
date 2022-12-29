@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "news-aggr"
+version = "0.1.0"
+description = ""
+authors = ["Michael <mpgg2000@gmail.com>"]
+readme = "README.md"
+packages = [{include = "news_aggr"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+httpx = "^0.23.1"
+bs4 = "^0.0.1"
+demjson3 = "^3.0.6"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.991"
+autopep8 = "^2.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
