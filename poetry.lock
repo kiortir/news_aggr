@@ -16,6 +16,17 @@ test = ["contextlib2", "coverage[toml] (>=4.5)", "hypothesis (>=4.0)", "mock (>=
 trio = ["trio (>=0.16,<0.22)"]
 
 [[package]]
+name = "asynciolimiter"
+version = "1.0.0b1"
+description = "Rate limiter for Async IO"
+category = "main"
+optional = false
+python-versions = ">=3.8"
+
+[package.extras]
+build = ["sphinx", "twine", "wheel"]
+
+[[package]]
 name = "autopep8"
 version = "2.0.1"
 description = "A tool that automatically formats Python code to conform to the PEP 8 style guide"
@@ -197,12 +208,15 @@ python-versions = ">=3.7"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.11"
-content-hash = "03dc37dc9431ba1d2faf925537ebccde16eef0e619d709f6f10b6c202f6257e0"
+content-hash = "ca159b2c7315ee37446768ee8fded32d25c2ce31c1244001227be3cf86333c57"
 
 [metadata.files]
 anyio = [
     {file = "anyio-3.6.2-py3-none-any.whl", hash = "sha256:fbbe32bd270d2a2ef3ed1c5d45041250284e31fc0a4df4a5a6071842051a51e3"},
     {file = "anyio-3.6.2.tar.gz", hash = "sha256:25ea0d673ae30af41a0c442f81cf3b38c7e79fdc7b60335a4c14e05eb0947421"},
+]
+asynciolimiter = [
+    {file = "asynciolimiter-1.0.0b1-py3-none-any.whl", hash = "sha256:0acc028f766e52f7ff3da330ecea90e6cd0e2e1faa90d8840f5c4f25acc6f5f4"},
 ]
 autopep8 = [
     {file = "autopep8-2.0.1-py2.py3-none-any.whl", hash = "sha256:be5bc98c33515b67475420b7b1feafc8d32c1a69862498eda4983b45bffd2687"},

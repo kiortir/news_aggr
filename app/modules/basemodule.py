@@ -1,19 +1,41 @@
+import asyncio
 import datetime
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from functools import reduce
 from typing import Callable, Iterable
 import inspect
 import functools
 
 import httpx
+from asynciolimiter import Limiter
+
 
 
 @dataclass
-class ArticlePreview:
-    url: str
+class PublishDateTimeMixin:
     publish_datetime: datetime.datetime
+
+
+@dataclass
+class ArticlePreview(PublishDateTimeMixin):
+    url: str
+
+
+@dataclass
+class Article(PublishDateTimeMixin):
+    title: str
+    title_img_url: str | None
+    content: str
+    
+#FIXME: find elegant solution
+def datetime_to_dict(z: dict):
+    z['publish_datetime'] = z['publish_datetime'].timestamp()
+    return z
+
+def serialize_iter(g):
+    return list(map(datetime_to_dict, map(asdict, g)))
 
 
 class arecursion(object):
@@ -78,23 +100,27 @@ def get_pipe(*functions):
 
 class BaseModule(ABC):
 
-    def __init__(self, base_url="") -> None:
+    def __init__(self, base_url="", rate_limit=50) -> None:
         super().__init__()
         self.base_url = base_url
+        self.rate_limiter = Limiter(rate_limit)
+        self.client = httpx.AsyncClient()
 
+    @abstractmethod
     def get_next_url(self, url: str, generations: int):
-        return ""
+        ...
 
     async def get_content(self, url: str) -> httpx.Response | None:
-        print("Собираем содержимое")
+        await self.rate_limiter.wait()
+        print("Собираем содержимое", url)
 
-        async with httpx.AsyncClient() as client:
-            r = await client.get(url)
+        r = await self.client.get(url, follow_redirects=True)
+
         return r
 
-
     def interpret_response(self, content: httpx.Response):
-        return content.content
+        return content.text
+
 
     def interpret_article_response(self, *args):
         return self.interpret_response(*args)
@@ -117,7 +143,7 @@ class BaseModule(ABC):
 
     @arecursion
     async def gather_articles(self, page_url=None, articles=None, generation=1):
-        
+
         if page_url == None:
             page_url = self.base_url
 
@@ -147,3 +173,43 @@ class BaseModule(ABC):
             )
 
         return articles
+
+    async def fetch_article_list(self, article_list: list[ArticlePreview]):
+
+        article_coroutines = [self.get_content(
+            article.url) for article in article_list]
+
+        articles = await asyncio.gather(*article_coroutines)
+
+        return articles
+
+    async def collect_articles(self, article_list: list[ArticlePreview]):
+
+        pipe = get_pipe(
+            *map(allow_none, [
+                self.fetch_article_list
+            ])
+        )
+
+        return await pipe(article_list)
+
+    def interpret_articles(self, articles):
+        return map(self.interpret_article_response, articles)
+
+    @abstractmethod
+    async def parse_articles(self, raw_articles):
+        ...
+
+    async def extract(self):
+
+        pipe = get_pipe(
+            *map(allow_none, [
+                self.gather_articles,
+                self.collect_articles,
+                self.interpret_articles,
+                self.parse_articles,
+                serialize_iter
+            ])
+        )
+
+        return await pipe(self)
