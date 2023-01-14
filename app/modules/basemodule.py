@@ -12,7 +12,6 @@ import httpx
 from asynciolimiter import Limiter
 
 
-
 @dataclass
 class PublishDateTimeMixin:
     publish_datetime: datetime.datetime
@@ -28,11 +27,16 @@ class Article(PublishDateTimeMixin):
     title: str
     title_img_url: str | None
     content: str
-    
-#FIXME: find elegant solution
+
+# FIXME: find elegant solution
+
+
 def datetime_to_dict(z: dict):
-    z['publish_datetime'] = z['publish_datetime'].timestamp()
+    pd = z.get("publish_datetime")
+    if pd:
+        z['publish_datetime'] = pd.timestamp()
     return z
+
 
 def serialize_iter(g):
     return list(map(datetime_to_dict, map(asdict, g)))
@@ -40,6 +44,7 @@ def serialize_iter(g):
 
 class arecursion(object):
     "Украл с хабра. Рандомно навесил async/await"
+
 
     def __init__(self, func):
         self.func = func
@@ -64,7 +69,7 @@ def allow_none(foo: Callable):
         if not len(args) or len(args) > 1:
             raise ValueError("Не предусмотрено для множественных аргументов")
 
-        if not args[0]:
+        if args[0] is None:
             return None
 
         return foo(*args)
@@ -98,16 +103,26 @@ def get_pipe(*functions):
     return _pipe
 
 
+def iprint(content):
+    print(content)
+    return content
+
+
+async def isleep(content):
+    await asyncio.sleep(1.0)
+    return content
+
+
 class BaseModule(ABC):
 
     def __init__(self, base_url="", rate_limit=50) -> None:
         super().__init__()
         self.base_url = base_url
         self.rate_limiter = Limiter(rate_limit)
-        self.client = httpx.AsyncClient()
+        self.client = httpx.AsyncClient(timeout=12)
 
     @abstractmethod
-    def get_next_url(self, url: str, generations: int):
+    def get_next_url(self, generation: int):
         ...
 
     async def get_content(self, url: str) -> httpx.Response | None:
@@ -120,7 +135,6 @@ class BaseModule(ABC):
 
     def interpret_response(self, content: httpx.Response):
         return content.text
-
 
     def interpret_article_response(self, *args):
         return self.interpret_response(*args)
@@ -137,37 +151,34 @@ class BaseModule(ABC):
 
     @classmethod
     def guard_pipe(cls, content: list[ArticlePreview]):
-        latest = content.pop()
+        latest = content[-1]
         if latest.publish_datetime.date() == datetime.datetime.now().date():
             return content
 
-    @arecursion
-    async def gather_articles(self, page_url=None, articles=None, generation=1):
-
-        if page_url == None:
-            page_url = self.base_url
+    # @arecursion
+    async def gather_articles(self, articles=None, generation=0):
 
         if articles is None:
             articles = []
 
         pipe = get_pipe(
             *map(allow_none, [
+                self.get_next_url,
                 self.get_content,
                 self.interpret_response,
                 self.parse_content,
-                self.guard_pipe,
                 self.filter_content,
                 self.sort_content,
+                self.guard_pipe,
             ]))
 
-        page_articles = await pipe(page_url)
+        page_articles = await pipe(generation)
 
         if page_articles:
             articles.extend(page_articles)
 
             await self.gather_articles(
-                self,
-                self.get_next_url(page_url, generation),
+                # self,
                 articles=articles,
                 generation=generation + 1
             )
@@ -203,8 +214,8 @@ class BaseModule(ABC):
     async def extract(self):
 
         pipe = get_pipe(
+            self.gather_articles,
             *map(allow_none, [
-                self.gather_articles,
                 self.collect_articles,
                 self.interpret_articles,
                 self.parse_articles,
@@ -212,4 +223,4 @@ class BaseModule(ABC):
             ])
         )
 
-        return await pipe(self)
+        return await pipe(None)
